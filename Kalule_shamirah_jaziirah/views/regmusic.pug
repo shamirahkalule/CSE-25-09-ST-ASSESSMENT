@@ -1,0 +1,136 @@
+doctype html
+html
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+    title Song Manager
+    link(rel='stylesheet', href='/css/songs.css')
+  
+  body
+    #flashMessage.flash-message.hidden
+      span#flashText
+      button#flashClose.close-btn X
+
+    .container
+      .form-side
+        h1 Upload your music
+
+        form#songForm(method="POST" enctype="multipart/form-data")
+          .cover-upload
+            label(for="cover")
+              span Cover Photo
+              img.upload-icon(src="https://raw.githubusercontent.com/tech-refactory/CSE-25-09-ST-ASSESSMENT/main/Images/icons/edit-icon.svg" class="icon" alt="Edit")
+            input#cover(type="file" name="cover" accept="image/*" hidden)
+
+          input(type="text" name="title" placeholder="Song title" required)
+          input(type="text" name="artist" placeholder="Artist" required)
+          input(type="text" name="album" placeholder="Album" required)
+          input(type="number" name="year" placeholder="Year of release" required)
+          input(type="file" name="song" accept="audio/*" required)
+
+          button(type="submit") UPLOAD
+
+      
+      .display-side
+        #songsList
+          p Loading songs...
+
+    script.
+      loadSongs();
+
+      document.getElementById('songForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const inputs = e.target.querySelectorAll("input[required]");
+        let isValid = true;
+
+        inputs.forEach(input => {
+          if (!input.value.trim()) {
+            input.classList.remove("valid");
+            input.classList.add("invalid");
+            isValid = false;
+          } else {
+            input.classList.remove("invalid");
+            input.classList.add("valid");
+          }
+        });
+
+        if (!isValid) return;
+
+        const formData = new FormData(e.target);
+
+        try {
+          const response = await fetch('/', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (response.ok) {
+            e.target.reset();
+            loadSongs();
+          }
+        } catch (error) {
+          alert('Upload failed');
+        }
+      });
+
+      async function loadSongs() {
+        try {
+          const response = await fetch('/api/songs');
+          const songs = await response.json();
+          const list = document.getElementById('songsList');
+
+          list.innerHTML = songs.map(song => `
+            <div class="song-row">
+              <img src="${song.cover || '/img/default.png'}">
+              <div class="song-info">
+                <b>${song.title}</b>
+                <span>${song.artist} • ${song.album || "Single"} • ${song.year || "Year"}</span>
+              </div>
+
+              <button class="play-btn" data-src="${song.song}">
+                <img src="https://raw.githubusercontent.com/tech-refactory/CSE-25-09-ST-ASSESSMENT/main/Images/icons/play.svg" class="icon" class="icon">
+              </button>
+            </div>
+          `).join('');
+        } catch (err) {
+          document.getElementById('songsList').innerHTML = "<p>Failed to load songs</p>";
+        }
+      }
+
+      
+
+      loadSongs();
+
+      function showFlash(message, type = 'success') {
+        const flash = document.getElementById('flashMessage');
+        const flashText = document.getElementById('flashText');
+        
+        flashText.textContent = message;
+        
+        
+        flash.classList.remove('error', 'warning', 'info', 'success');
+        
+        
+        if (type !== 'success') {
+          flash.classList.add(type);
+        }
+        
+        
+        flash.classList.remove('hidden');
+        flash.classList.add('show');
+        
+        
+        setTimeout(() => {
+          hideFlash();
+        }, 3000);
+      }
+      
+      function hideFlash() {
+        const flash = document.getElementById('flashMessage');
+        flash.classList.remove('show');
+        flash.classList.add('hidden');
+      }
+      
+      
+      document.getElementById('flashClose').addEventListener('click', hideFlash);
