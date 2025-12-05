@@ -19,7 +19,7 @@ html
           .cover-upload
             label(for="cover")
               span Cover Photo
-              img.upload-icon(src="https://raw.githubusercontent.com/tech-refactory/CSE-25-09-ST-ASSESSMENT/main/Images/icons/edit-icon.svg" class="icon" alt="Edit")
+              img.upload-icon(src="/icons/edit-icon.svg" class="icon" alt="Edit")
             input#cover(type="file" name="cover" accept="image/*" hidden)
 
           input(type="text" name="title" placeholder="Song title" required)
@@ -37,6 +37,7 @@ html
 
     script.
       loadSongs();
+      
 
       document.getElementById('songForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -87,9 +88,9 @@ html
                 <b>${song.title}</b>
                 <span>${song.artist} • ${song.album || "Single"} • ${song.year || "Year"}</span>
               </div>
-
+              <audio class="audio-player" src="${song.song}" preload="metadata"></audio>
               <button class="play-btn" data-src="${song.song}">
-                <img src="https://raw.githubusercontent.com/tech-refactory/CSE-25-09-ST-ASSESSMENT/main/Images/icons/play.svg" class="icon" class="icon">
+                <img src="/icons/play.svg" class="icon" class="icon">
               </button>
             </div>
           `).join('');
@@ -98,39 +99,51 @@ html
         }
       }
 
-      
+      document.addEventListener("click", function (e) {
+        const btn = e.target.closest(".play-btn");
+        if (!btn) return;
+
+        const songRow = btn.closest(".song-row");
+        const audio = songRow.querySelector(".audio-player");
+        const icon = btn.querySelector("img");
+
+        document.querySelectorAll(".audio-player").forEach(a => {
+          if (a !== audio) {
+            a.pause();
+            a.currentTime = 0;
+            a.closest(".song-row")
+              .querySelector(".play-btn img").src = "/icons/play.svg";
+          }
+        });
+
+        if (audio.paused) {
+          audio.play();
+          icon.src = "/icons/pause.svg";
+        } else {
+          audio.pause();
+          icon.src = "/icons/play.svg";
+        }
+      });
 
       loadSongs();
 
-      function showFlash(message, type = 'success') {
-        const flash = document.getElementById('flashMessage');
-        const flashText = document.getElementById('flashText');
+      document.getElementById('cover').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const label = document.querySelector('label[for="cover"]');
+        const coverText = label.querySelector('span');
         
-        flashText.textContent = message;
-        
-        
-        flash.classList.remove('error', 'warning', 'info', 'success');
-        
-        
-        if (type !== 'success') {
-          flash.classList.add(type);
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function(event) {
+            coverText.style.display = 'none';
+            let img = label.querySelector('.preview-img');
+            if (!img) {
+              img = document.createElement('img');
+              img.className = 'preview-img';
+              label.insertBefore(img, label.firstChild);
+            }
+            img.src = event.target.result;
+          };
+          reader.readAsDataURL(file);
         }
-        
-        
-        flash.classList.remove('hidden');
-        flash.classList.add('show');
-        
-        
-        setTimeout(() => {
-          hideFlash();
-        }, 3000);
-      }
-      
-      function hideFlash() {
-        const flash = document.getElementById('flashMessage');
-        flash.classList.remove('show');
-        flash.classList.add('hidden');
-      }
-      
-      
-      document.getElementById('flashClose').addEventListener('click', hideFlash);
+      });
