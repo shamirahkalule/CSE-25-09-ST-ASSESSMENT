@@ -68,7 +68,7 @@ body {
   border: 1px solid #ccc;
 }
 
-.form-side button {
+.form-side button[type="submit"] {
   width: 100%;
   padding: 14px;
   background: black;
@@ -78,7 +78,7 @@ body {
   cursor: pointer;
 }
 
-button:hover {
+button[type="submit"]:hover {
   color: black;
   background: white;
   border: 2px solid black;
@@ -140,3 +140,85 @@ button:hover {
   left: 0;
 }
 
+.flash-message {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #10b981;
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 300px;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  font-size: 16px;
+}
+
+.flash-message.hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-20px);
+  pointer-events: none;
+}
+
+.flash-message.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 10px;
+  font-weight: bold;
+}
+
+.close-btn:hover {
+  opacity: 0.8;
+}
+
+.form-side {
+  position: relative;
+}
+
+
+input.valid,
+input.valid:focus {
+  border: 2px solid green !important;  
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.3);
+  outline: none;
+}
+
+
+input.invalid,
+input.invalid:focus {
+  border: 2px solid red !important;  
+  box-shadow: 0 0 8px rgba(248, 113, 113, 0.3);
+  outline: none;
+}
+
+
+.form-side input {
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  transition: border 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* When focused, show a default focus state */
+.form-side input:focus {
+  outline: none;
+  border: 2px solid #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}

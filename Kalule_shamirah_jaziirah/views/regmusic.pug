@@ -7,12 +7,12 @@ html
     link(rel='stylesheet', href='/css/songs.css')
   
   body
-    #flashMessage.flash-message.hidden
-      span#flashText
-      button#flashClose.close-btn X
-
     .container
       .form-side
+        #flashMessage.flash-message.hidden
+          span#flashText
+          button#flashClose.close-btn(type="button") X
+        
         h1 Upload your music
 
         form#songForm(method="POST" enctype="multipart/form-data")
@@ -36,27 +36,83 @@ html
           p Loading songs...
 
     script.
-      loadSongs();
+      // Flash message functionality
+      const flashMessage = document.getElementById('flashMessage');
+      const flashText = document.getElementById('flashText');
+      const flashClose = document.getElementById('flashClose');
       
-
+      function showFlashMessage(message) {
+        flashText.textContent = message;
+        flashMessage.classList.remove('hidden');
+        flashMessage.classList.add('show');
+        
+        // Auto hide after 5 seconds
+        setTimeout(() => {
+          hideFlashMessage();
+        }, 5000);
+      }
+      
+      function hideFlashMessage() {
+        flashMessage.classList.remove('show');
+        flashMessage.classList.add('hidden');
+      }
+      
+      if (flashClose) {
+        flashClose.addEventListener('click', hideFlashMessage);
+      }
+      
+      // Input validation
+      document.querySelectorAll('input[required]').forEach(input => {
+        // Real-time validation as user types
+        input.addEventListener('input', function() {
+          if (this.value.trim()) {
+            this.classList.remove('invalid');
+            this.classList.add('valid');
+          } else {
+            this.classList.remove('valid');
+          }
+        });
+        
+        // Remove validation styles on focus out (for empty inputs)
+        input.addEventListener('blur', function() {
+          if (!this.value.trim()) {
+            this.classList.remove('valid', 'invalid');
+          }
+        });
+      });
+      
+      // Reset all validation styles to default
+      function resetValidationStyles() {
+        document.querySelectorAll('input').forEach(input => {
+          input.classList.remove('valid', 'invalid');
+        });
+      }
+      
       document.getElementById('songForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const inputs = e.target.querySelectorAll("input[required]");
         let isValid = true;
 
+        // Clear all validation styles first
+        inputs.forEach(input => {
+          input.classList.remove('valid', 'invalid');
+        });
+
+        // Check each input and mark ALL empty ones as invalid
         inputs.forEach(input => {
           if (!input.value.trim()) {
-            input.classList.remove("valid");
             input.classList.add("invalid");
             isValid = false;
           } else {
-            input.classList.remove("invalid");
             input.classList.add("valid");
           }
         });
 
-        if (!isValid) return;
+        if (!isValid) {
+          showFlashMessage('Please fill in all required fields');
+          return;
+        }
 
         const formData = new FormData(e.target);
 
@@ -67,11 +123,33 @@ html
           });
 
           if (response.ok) {
+            // Show success flash message
+            showFlashMessage('Song added successfully');
+            
+            // Reset form and validation styles
             e.target.reset();
+            resetValidationStyles();
+            
+            // Reset cover image preview if exists
+            const label = document.querySelector('label[for="cover"]');
+            const coverText = label.querySelector('span');
+            const previewImg = label.querySelector('.preview-img');
+            
+            if (previewImg) {
+              previewImg.remove();
+            }
+            if (coverText) {
+              coverText.style.display = 'inline';
+            }
+            
+            // Reload songs list
             loadSongs();
+          } else {
+            showFlashMessage('Upload failed. Please try again.');
           }
         } catch (error) {
-          alert('Upload failed');
+          console.error('Upload error:', error);
+          showFlashMessage('Upload failed. Please try again.');
         }
       });
 
@@ -83,50 +161,58 @@ html
 
           list.innerHTML = songs.map(song => `
             <div class="song-row">
-              <img src="${song.cover || '/img/default.png'}">
+              <img src="${song.cover || '/img/default.png'}" alt="${song.title}">
               <div class="song-info">
                 <b>${song.title}</b>
                 <span>${song.artist} • ${song.album || "Single"} • ${song.year || "Year"}</span>
               </div>
               <audio class="audio-player" src="${song.song}" preload="metadata"></audio>
-              <button class="play-btn" data-src="${song.song}">
-                <img src="/icons/play.svg" class="icon" class="icon">
+              <button class="play-btn" type="button" data-src="${song.song}">
+                <img src="/icons/play.svg" class="icon" alt="Play">
               </button>
             </div>
           `).join('');
+          
+          // Re-attach play button listeners
+          attachPlayButtonListeners();
         } catch (err) {
+          console.error('Error loading songs:', err);
           document.getElementById('songsList').innerHTML = "<p>Failed to load songs</p>";
         }
       }
+      
+      function attachPlayButtonListeners() {
+        document.querySelectorAll('.play-btn').forEach(button => {
+          button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const songRow = this.closest(".song-row");
+            const audio = songRow.querySelector(".audio-player");
+            const icon = this.querySelector("img");
 
-      document.addEventListener("click", function (e) {
-        const btn = e.target.closest(".play-btn");
-        if (!btn) return;
+            // Pause all other audios
+            document.querySelectorAll(".audio-player").forEach(a => {
+              if (a !== audio) {
+                a.pause();
+                a.currentTime = 0;
+                const otherIcon = a.closest(".song-row").querySelector(".play-btn img");
+                if (otherIcon) {
+                  otherIcon.src = "/icons/play.svg";
+                }
+              }
+            });
 
-        const songRow = btn.closest(".song-row");
-        const audio = songRow.querySelector(".audio-player");
-        const icon = btn.querySelector("img");
-
-        document.querySelectorAll(".audio-player").forEach(a => {
-          if (a !== audio) {
-            a.pause();
-            a.currentTime = 0;
-            a.closest(".song-row")
-              .querySelector(".play-btn img").src = "/icons/play.svg";
-          }
+            if (audio.paused) {
+              audio.play();
+              icon.src = "/icons/pause.svg";
+            } else {
+              audio.pause();
+              icon.src = "/icons/play.svg";
+            }
+          });
         });
+      }
 
-        if (audio.paused) {
-          audio.play();
-          icon.src = "/icons/pause.svg";
-        } else {
-          audio.pause();
-          icon.src = "/icons/play.svg";
-        }
-      });
-
-      loadSongs();
-
+      // Cover image preview
       document.getElementById('cover').addEventListener('change', function(e) {
         const file = e.target.files[0];
         const label = document.querySelector('label[for="cover"]');
@@ -135,11 +221,17 @@ html
         if (file) {
           const reader = new FileReader();
           reader.onload = function(event) {
-            coverText.style.display = 'none';
+            if (coverText) {
+              coverText.style.display = 'none';
+            }
             let img = label.querySelector('.preview-img');
             if (!img) {
               img = document.createElement('img');
               img.className = 'preview-img';
+              img.style.width = '130px';
+              img.style.height = '130px';
+              img.style.borderRadius = '50%';
+              img.style.objectFit = 'cover';
               label.insertBefore(img, label.firstChild);
             }
             img.src = event.target.result;
@@ -147,3 +239,6 @@ html
           reader.readAsDataURL(file);
         }
       });
+
+      // Initial load
+      loadSongs();
